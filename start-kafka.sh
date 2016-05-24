@@ -1,9 +1,14 @@
 #!/bin/bash
 
-env 
+# Regex to match TCP URLs provided by Docker-Compose / Kubernetes link env vars
+# https://docs.docker.com/compose/link-env-deprecated/
+# http://kubernetes.io/docs/user-guide/services/#environment-variables
+tcpurl='tcp://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}$'
 
 if [[ -z "$KAFKA_PORT" ]]; then
     export KAFKA_PORT=9092
+elif [[ $KAFKA_PORT =~ $tcpurl ]]; then
+    export KAFKA_PORT=`echo $KAFKA_PORT | grep -oE "[^:]+$"`
 fi
 if [[ -z "$KAFKA_ADVERTISED_PORT" ]]; then
     export KAFKA_ADVERTISED_PORT=$(docker port `hostname` $KAFKA_PORT | sed -r "s/.*:(.*)/\1/g")
@@ -27,14 +32,6 @@ fi
 if [[ -z "$KAFKA_ADVERTISED_HOST_NAME" && -n "$HOSTNAME_COMMAND" ]]; then
     export KAFKA_ADVERTISED_HOST_NAME=$(eval $HOSTNAME_COMMAND)
 fi
-
-echo "KAFKA_PORT = $KAFKA_PORT"
-echo "KAFKA_ADVERTISED_PORT = $KAFKA_ADVERTISED_PORT"
-echo "KAFKA_BROKER_ID = $KAFKA_BROKER_ID"
-echo "KAFKA_LOG_DIRS = $KAFKA_LOG_DIRS"
-echo "KAFKA_ZOOKEEPER_CONNECT = $KAFKA_ZOOKEEPER_CONNECT""
-echo "KAFKA_HEAP_OPTS = $KAFKA_HEAP_OPTS"
-echo "KAFKA_ADVERTISED_HOST_NAME = $KAFKA_ADVERTISED_HOST_NAME"
 
 for VAR in `env`
 do
